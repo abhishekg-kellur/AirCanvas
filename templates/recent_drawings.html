@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Air Canvas Recent List</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+
+<div class="container mt-4">
+  <h1 class="text-center">Air Canvas Recent List</h1>
+  <div id="cardContainer" class="row mt-4">
+    <!-- Cards will be dynamically added here -->
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+<script>
+function populateCards() {
+    $.ajax({
+      url: '/get_recent_drawings',
+      method: 'GET',
+      success: function(response) {
+        var data = response.drawing_list; 
+        // Iterate over the data and create cards
+        data.forEach(function(item) {
+          var cardHtml = `
+            <div class="col-md-4 mb-4">
+              <div class="card">
+                <div class="card-header">
+                  Drawings
+                </div>
+                <div class="card-body">
+                  <img src="${item.screenshot}" class="img-fluid" alt="Drawing Image">
+                </div>
+              </div>
+            </div>
+          `;
+          $('#cardContainer').append(cardHtml); // Append card to the container
+        });
+      },
+      error: function(err) {
+        console.error('Error fetching data:', err);
+      }
+    });
+  }
+
+  // Call the function to populate cards when the page loads
+  $(document).ready(function() {
+    populateCards();
+  });
+</script>
+
+</html>
