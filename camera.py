@@ -80,49 +80,49 @@ class VideoCamera(object):
 
         # Reset drawing when thumb and index finger are far apart
         if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                index_finger_landmark = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-                thumb_landmark = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
-                thumb_x, thumb_y = int(thumb_landmark.x * self.window_width), int(thumb_landmark.y * self.window_height)
-                index_x, index_y = int(index_finger_landmark.x * self.window_width), int(
-                    index_finger_landmark.y * self.window_height)
+            hand_landmarks = results.multi_hand_landmarks[0]
+            index_finger_landmark = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+            thumb_landmark = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+            thumb_x, thumb_y = int(thumb_landmark.x * self.window_width), int(thumb_landmark.y * self.window_height)
+            index_x, index_y = int(index_finger_landmark.x * self.window_width), int(
+                index_finger_landmark.y * self.window_height)
 
-                # Check if thumb and index finger are touching
-                distance = np.sqrt((thumb_x - index_x) ** 2 + (thumb_y - index_y) ** 2)
+            # Check if thumb and index finger are touching
+            distance = np.sqrt((thumb_x - index_x) ** 2 + (thumb_y - index_y) ** 2)
 
-                # Select color
-                if index_x > self.window_width - self.sidebar_width:
-                    self.colorIndex = int((index_y - 1) / self.color_block_height)
+            # Select color
+            if index_x > self.window_width - self.sidebar_width:
+                self.colorIndex = int((index_y - 1) / self.color_block_height)
 
-                # Draw circle on index finger with selected color
-                cv2.circle(frame, (index_x, index_y), 10, colors[self.colorIndex], cv2.FILLED)
+            # Draw circle on index finger with selected color
+            cv2.circle(frame, (index_x, index_y), 10, colors[self.colorIndex], cv2.FILLED)
 
-                # Start or stop drawing based on thumb and index finger proximity
-                if distance < 30:
-                    if not self.is_drawing:
-                        self.last_draw_point = (index_x, index_y)  # Store last drawing point
-                    self.is_drawing = True
-                    if self.drawing_color == (0, 0, 0):
-                        self.drawing_color = colors[self.colorIndex]
-                else:
-                    if self.is_drawing:
-                        self.last_draw_point = None  # Reset last drawing point if drawing was ongoing
-                    self.is_drawing = False
-                    self.drawing_color = (0, 0, 0)
+            # Start or stop drawing based on thumb and index finger proximity
+            if distance < 30:
+                if not self.is_drawing:
+                    self.last_draw_point = (index_x, index_y)  # Store last drawing point
+                self.is_drawing = True
+                if self.drawing_color == (0, 0, 0):
+                    self.drawing_color = colors[self.colorIndex]
+            else:
+                if self.is_drawing:
+                    self.last_draw_point = None  # Reset last drawing point if drawing was ongoing
+                self.is_drawing = False
+                self.drawing_color = (0, 0, 0)
 
-                # Draw when drawing is enabled
-                if self.drawing_color != (0, 0, 0):
-                    if self.colorIndex == 0:
-                        self.bpoints[self.blue_index].appendleft((index_x, index_y))
-                    elif self.colorIndex == 1:
-                        self.gpoints[self.green_index].appendleft((index_x, index_y))
-                    elif self.colorIndex == 2:
-                        self.rpoints[self.red_index].appendleft((index_x, index_y))
-                    elif self.colorIndex == 3:
-                        self.cpoints[self.cyan_index].appendleft((index_x, index_y))
-                    elif self.colorIndex == 4:
-                        self.ypoints[self.yellow_index].appendleft((index_x, index_y))
-                    self.undopoints[self.all_index].appendleft((index_x, index_y))
+            # Draw when drawing is enabled
+            if self.drawing_color != (0, 0, 0):
+                if self.colorIndex == 0:
+                    self.bpoints[self.blue_index].appendleft((index_x, index_y))
+                elif self.colorIndex == 1:
+                    self.gpoints[self.green_index].appendleft((index_x, index_y))
+                elif self.colorIndex == 2:
+                    self.rpoints[self.red_index].appendleft((index_x, index_y))
+                elif self.colorIndex == 3:
+                    self.cpoints[self.cyan_index].appendleft((index_x, index_y))
+                elif self.colorIndex == 4:
+                    self.ypoints[self.yellow_index].appendleft((index_x, index_y))
+                self.undopoints[self.all_index].appendleft((index_x, index_y))
 
         # Draw lines for each color
         points = [self.bpoints, self.gpoints, self.rpoints, self.cpoints, self.ypoints]
