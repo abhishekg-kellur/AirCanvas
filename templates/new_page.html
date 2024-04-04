@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Air Canvas Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <style>
     .color-box {
@@ -13,29 +14,22 @@
         margin-right: 5px;
     }
 </style>
+
 </head>
 <body>
 
     <div class="container mt-4">
         <h1 class="text-center">Air Canvas</h1>
         <div class="row">
-            <div class="col-md-8">
+            <div class="col">
                 <div id="video-container">
                     <img id="video-feed" width="100%" height="100%" src="{{ url_for('video_feed') }}" alt="Video Feed">
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="row">
-                    <div class="col-md-12">
-                        <button id="clear-button" class="btn btn-primary btn-block" onclick="clearDrawing()">Clear</button>
-                    </div>
-                    <div class="col-md-12 mt-2">
-                        <button id="undo-button" class="btn btn-primary btn-block" onclick="undoDrawing()">Undo</button>
-                    </div>
-                    <div class="col-md-12 mt-2">
-                        <button id="save-button" class="btn btn-primary btn-block" onclick="saveDrawing()">Save</button>
-                    </div>
-                </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12 mt-2">
+                <button id="save-button" class="btn btn-primary btn-block" onclick="saveDrawing()">Save</button>
             </div>
         </div>
     </div>
@@ -43,41 +37,55 @@
 </body>
 
 <script>
-    function clearDrawing() {
-        // Send a request to clear the drawing
-        fetch('/clear_drawing', { method: 'POST' });
-    }
-
-    function undoDrawing() {
-        // Send a request to undo the last drawing step
-        fetch('/undo_drawing', { method: 'POST' });
-    }
+    var drawingPoints = [];
 
     function saveDrawing() {
-        // Capture screenshot and send to the backend for saving
-        var videoFeed = document.getElementById('video-feed');
-        var canvas = document.createElement('canvas');
-        canvas.width = videoFeed.videoWidth;
-        canvas.height = videoFeed.videoHeight;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
-        var screenshot = canvas.toDataURL('image/jpeg');
+        capture(function(dataUrl) {
+            var imageData = dataUrl.split(',')[1]; // Extract base64 image data
+            var fileName = 'screenshot_' + Math.round(new Date().getTime() / 6000) + '.png';
+            // Send the filename and image data to the server for saving
+            fetch('/save_drawing', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filename: fileName, image_data: imageData })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to save drawing');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving drawing:', error);
+            });
+        });
+    }
 
-        // Send the screenshot data to the backend
-        fetch('/save_drawing', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ screenshot: screenshot })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to save drawing');
+    function capture(callback) {
+        // Select the div element you want to capture
+        var captureDiv = document.getElementById('video-container');
+      
+        // Use html2canvas library to capture the div
+        html2canvas(captureDiv, {
+            onrendered: function(canvas) {
+                // Convert canvas to base64 image data
+                var imageData = canvas.toDataURL("image/png");
+            
+                // Create a link element
+                var link = document.createElement('a');
+                link.href = imageData;
+            
+                // Set the filename for the screenshot
+                var fileName = 'screenshot_' + Math.round(new Date().getTime() / 6000) + '.png';
+                link.download = fileName;
+            
+                // Trigger click event on the link to save the screenshot
+                link.click();
+            
+                // Invoke the callback function with the filename
+                callback(fileName);
             }
-        })
-        .catch(error => {
-            console.error('Error saving drawing:', error);
         });
     }
 

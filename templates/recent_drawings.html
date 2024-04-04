@@ -34,8 +34,8 @@ function populateCards() {
                 <div class="card-header">
                   Drawings
                 </div>
-                <div class="card-body">
-                  <img src="${item.screenshot}" class="img-fluid" alt="Drawing Image">
+                <div class="card-body" data-bpoints="${item.bpoints}" data-gpoints="${item.gpoints}" data-rpoints="${item.rpoints}" data-cpoints="${item.cpoints}" data-ypoints="${item.ypoints}">
+                  <img src="/image/${item.screenshot}" class="img-fluid" alt="Drawing Image" width="600" height="500">
                 </div>
               </div>
             </div>
@@ -52,6 +52,10 @@ function populateCards() {
   // Call the function to populate cards when the page loads
   $(document).ready(function() {
     populateCards();
+  });
+
+  $('.card-body').click(function() {
+    
   });
 </script>
 

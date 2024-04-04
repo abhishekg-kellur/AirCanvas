@@ -1,6 +1,7 @@
-from flask import Flask, jsonify, render_template, Response, request
+from flask import Flask, jsonify, render_template, Response, request, send_file
 from camera import VideoCamera
 from pymongo import MongoClient
+import base64
 
 app = Flask(__name__)
 client = MongoClient('mongodb://localhost:27017/')
@@ -27,6 +28,11 @@ def gen(camera):
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
+@app.route('/image/<path:image_path>')
+def get_image(image_path):
+    full_path = '/home/abhishekg/Downloads/' + image_path
+    return send_file(full_path, mimetype='image/png') 
+
 @app.route('/video_feed')
 def video_feed():
     camera = get_camera()
@@ -51,9 +57,9 @@ def undo_drawing():
 def save_drawing():
     # Save the drawing data to MongoDB
     data = request.json
-    screenshot = data.get('screenshot')
+    filename = data.get('filename')
     camera = get_camera()
-    camera.save_to_mongodb(screenshot)
+    camera.save_to_mongodb(filename)
     return '', 204
     
 @app.route('/new_screen')
@@ -67,10 +73,15 @@ def recent_drawing_page():
 @app.route('/get_recent_drawings', methods=['GET'])
 def recent_drawing_list():
     data = list(collection.find({}, {'_id': 0}))
+    
+    # Construct image URLs for each drawing item
+    for item in data:
+        item['image_url'] = f'/image/{item["screenshot"]}'
+    
     context = {
         'drawing_list': data
     }
-    return jsonify(context)  
+    return jsonify(context)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='7070', debug=True)

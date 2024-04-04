@@ -78,18 +78,29 @@ class VideoCamera(object):
                                                 int((i + 1) * self.color_block_height - 10)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
+        # Add 'clear' button
+        clear_button_x = 20  # Adjust position as needed
+        clear_button_y = 20
+        cv2.rectangle(frame, (clear_button_x, clear_button_y - 20), (clear_button_x + 80, clear_button_y + 40), (128, 128, 128), cv2.FILLED)
+        cv2.putText(frame, 'Clear', (clear_button_x + 5, clear_button_y + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
         # Reset drawing when thumb and index finger are far apart
         if results.multi_hand_landmarks:
             hand_landmarks = results.multi_hand_landmarks[0]
             index_finger_landmark = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
             thumb_landmark = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
             thumb_x, thumb_y = int(thumb_landmark.x * self.window_width), int(thumb_landmark.y * self.window_height)
-            index_x, index_y = int(index_finger_landmark.x * self.window_width), int(
-                index_finger_landmark.y * self.window_height)
+            index_x, index_y = int(index_finger_landmark.x * self.window_width), int(index_finger_landmark.y * self.window_height)
 
             # Check if thumb and index finger are touching
             distance = np.sqrt((thumb_x - index_x) ** 2 + (thumb_y - index_y) ** 2)
 
+            if index_x is not None and index_y is not None:
+                # Check for 'undo' button activation
+                if clear_button_x <= index_x <= clear_button_x + 60 and clear_button_y - 20 <= index_y <= clear_button_y + 20:
+                    self.clear_drawing()
+
+                
             # Select color
             if index_x > self.window_width - self.sidebar_width:
                 self.colorIndex = int((index_y - 1) / self.color_block_height)
@@ -132,7 +143,7 @@ class VideoCamera(object):
                     if points[i][j][k - 1] is None or points[i][j][k] is None:
                         continue
                     cv2.line(frame, points[i][j][k - 1], points[i][j][k], colors[i], 2)
-
+            
         ret, jpeg = cv2.imencode('.jpg', frame)
         return jpeg.tobytes()
 
@@ -143,17 +154,7 @@ class VideoCamera(object):
         self.rpoints = [deque(maxlen=512)]
         self.cpoints = [deque(maxlen=512)]
         self.ypoints = [deque(maxlen=512)]
-       
-    def undo_drawing(self):
-        # Undo the last drawing step
-        if self.undopoints:
-            last_undo_point = self.undopoints.pop()
-            for color_points in [self.bpoints, self.gpoints, self.rpoints, self.cpoints, self.ypoints]:
-                for points in color_points:
-                    if last_undo_point in points:
-                        points.pop()
-                        return  # Exit the loop once the point is found and removed
-            
+
     def save_to_mongodb(self, screenshot):
         client = MongoClient('mongodb://localhost:27017/')
         db = client['AirCanvas']
