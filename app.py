@@ -55,7 +55,7 @@ def login():
             user_obj = User()
             user_obj.id = username
             login_user(user_obj)
-            return redirect(url_for('dashboard'))
+            return redirect('dashboard')
         else:
             return 'Invalid username or password'
     if gcamera is not None:
