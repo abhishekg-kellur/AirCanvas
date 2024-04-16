@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Air Canvas Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    .color-box {
+        width: 30px;
+        height: 30px;
+        display: inline-block;
+        margin-right: 5px;
+    }
+</style>
+
+</head>
+<body>
+
+    <div class="container mt-4">
+        <h1 class="text-center">Air Canvas</h1>
+        <div class="row">
+            <div class="col">
+                <div id="video-container">
+                    <img id="video-feed" width="100%" height="100%" src="{{ url_for('drafted_video_feed', bpoints=bpoints, gpoints=gpoints, rpoints=rpoints, cpoints=cpoints, ypoints=ypoints) }}" alt="Video Feed">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -26,15 +26,21 @@ function populateCards() {
       method: 'GET',
       success: function(response) {
         var data = response.drawing_list; 
+        
         // Iterate over the data and create cards
         data.forEach(function(item) {
+          var bpointsStr = JSON.stringify(item.bpoints);
+          var gpointsStr = JSON.stringify(item.gpoints);
+          var rpointsStr = JSON.stringify(item.rpoints);
+          var cpointsStr = JSON.stringify(item.cpoints);
+          var ypointsStr = JSON.stringify(item.ypoints);
           var cardHtml = `
             <div class="col-md-4 mb-4">
               <div class="card">
                 <div class="card-header">
                   Drawings
                 </div>
-                <div class="card-body" data-bpoints="${item.bpoints}" data-gpoints="${item.gpoints}" data-rpoints="${item.rpoints}" data-cpoints="${item.cpoints}" data-ypoints="${item.ypoints}">
+                <div class="card-body" data-bpoints="${bpointsStr}" data-gpoints="${gpointsStr}" data-rpoints="${rpointsStr}" data-cpoints="${cpointsStr}" data-ypoints="${ypointsStr}">
                   <img src="/image/${item.screenshot}" class="img-fluid" alt="Drawing Image" width="600" height="500">
                 </div>
               </div>
@@ -54,8 +60,23 @@ function populateCards() {
     populateCards();
   });
 
-  $('.card-body').click(function() {
-    
+  $(document).on('click', '.card-body', function() {
+    console.log('Clicked on .card-body');
+    var bpoints = JSON.parse($(this).attr('data-bpoints'));
+    var gpoints = JSON.parse($(this).attr('data-gpoints'));
+    var rpoints = JSON.parse($(this).attr('data-rpoints'));
+    var cpoints = JSON.parse($(this).attr('data-cpoints'));
+    var ypoints = JSON.parse($(this).attr('data-ypoints'));
+
+    // Store data in sessionStorage
+    sessionStorage.setItem('bpoints', JSON.stringify(bpoints));
+    sessionStorage.setItem('gpoints', JSON.stringify(gpoints));
+    sessionStorage.setItem('rpoints', JSON.stringify(rpoints));
+    sessionStorage.setItem('cpoints', JSON.stringify(cpoints));
+    sessionStorage.setItem('ypoints', JSON.stringify(ypoints));
+
+    // Navigate to the draft_page.html page
+    window.location.href = '/drafted_page';
   });
 </script>
 

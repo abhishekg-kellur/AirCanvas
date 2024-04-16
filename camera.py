@@ -8,17 +8,40 @@ mp_hands = mp.solutions.hands
 hands = mp_hands.Hands()
 
 # Colors for drawing
-colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 255, 0), (0, 255, 255)]
-color_names = ["Red", "Green", "Blue", "Cyan", "Yellow"]
+colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255)]
+color_names = ["Blue", "Green", "Red", "Cyan", "Yellow"]
 
 class VideoCamera(object):
-    def __init__(self):
+    def __init__(self, bpoints=None, gpoints=None, rpoints=None, cpoints=None, ypoints=None):
         # Initialize variables for drawing
-        self.bpoints = [deque(maxlen=512)]
-        self.gpoints = [deque(maxlen=512)]
-        self.rpoints = [deque(maxlen=512)]
-        self.cpoints = [deque(maxlen=512)]
-        self.ypoints = [deque(maxlen=512)]
+        print("Points:", bpoints)
+        if bpoints or gpoints or rpoints or cpoints or ypoints:
+            bpoints_list = list(map(int, bpoints.split(','))) if bpoints else []
+            gpoints_list = list(map(int, gpoints.split(','))) if gpoints else []
+            rpoints_list = list(map(int, rpoints.split(','))) if rpoints else []
+            cpoints_list = list(map(int, cpoints.split(','))) if cpoints else []
+            ypoints_list = list(map(int, ypoints.split(','))) if ypoints else []
+            
+            # Create deques from the coordinate lists
+            self.bpoints = [deque(bpoints_list, maxlen=512)]
+            self.gpoints = [deque(gpoints_list, maxlen=512)]
+            self.rpoints = [deque(rpoints_list, maxlen=512)]
+            self.cpoints = [deque(cpoints_list, maxlen=512)]
+            self.ypoints = [deque(ypoints_list, maxlen=512)]
+            
+            print("blue color coordinates:", self.bpoints)
+            print("green color coordinates:", self.gpoints)
+            print("red color coordinates:", self.rpoints)
+            print("cyan color coordinates:", self.cpoints)
+            print("yellow color coordinates:", self.ypoints, "\n\n")
+        else:
+            # Initialize variables for drawing
+            self.bpoints = [deque(maxlen=512)]
+            self.gpoints = [deque(maxlen=512)]
+            self.rpoints = [deque(maxlen=512)]
+            self.cpoints = [deque(maxlen=512)]
+            self.ypoints = [deque(maxlen=512)]
+            
         self.undopoints = [deque(maxlen=512)]
         self.blue_index = self.green_index = self.red_index = self.yellow_index = self.cyan_index = self.all_index = 0
         
@@ -37,7 +60,7 @@ class VideoCamera(object):
         # Initialize video capture object
         self.video = None
 
-    def __del__(self):
+    def delete(self):
         if self.video is not None:
             self.video.release()
 
@@ -104,6 +127,7 @@ class VideoCamera(object):
             # Select color
             if index_x > self.window_width - self.sidebar_width:
                 self.colorIndex = int((index_y - 1) / self.color_block_height)
+                print("color index :", self.colorIndex)
 
             # Draw circle on index finger with selected color
             cv2.circle(frame, (index_x, index_y), 10, colors[self.colorIndex], cv2.FILLED)
@@ -134,6 +158,17 @@ class VideoCamera(object):
                 elif self.colorIndex == 4:
                     self.ypoints[self.yellow_index].appendleft((index_x, index_y))
                 self.undopoints[self.all_index].appendleft((index_x, index_y))
+                print("blue color coordinates:", self.bpoints)
+                print("green color coordinates:", self.gpoints)
+                print("red color coordinates:", self.rpoints)
+                print("cyan color coordinates:", self.cpoints)
+                print("yellow color coordinates:", self.ypoints, "\n\n")
+                
+                print("blue color inside:", self.bpoints[self.blue_index])
+                print("green color inside:", self.gpoints[self.green_index])
+                print("red color inside:", self.rpoints[self.red_index])
+                print("cyan color inside:", self.cpoints[self.cyan_index])
+                print("yellow color inside:", self.ypoints[self.yellow_index], "\n\n")
 
         # Draw lines for each color
         points = [self.bpoints, self.gpoints, self.rpoints, self.cpoints, self.ypoints]
@@ -155,7 +190,7 @@ class VideoCamera(object):
         self.cpoints = [deque(maxlen=512)]
         self.ypoints = [deque(maxlen=512)]
 
-    def save_to_mongodb(self, screenshot):
+    def save_to_mongodb(self, screenshot, videofile):
         client = MongoClient('mongodb://localhost:27017/')
         db = client['AirCanvas']
         collection = db['drawings']
@@ -170,6 +205,7 @@ class VideoCamera(object):
             'red_index': self.red_index,
             'cyan_index': self.cyan_index,
             'yellow_index': self.yellow_index,
-            'screenshot': screenshot
+            'screenshot': screenshot,
+            'videofile': videofile
         }
         id = collection.insert_one(drawing_data).inserted_id
