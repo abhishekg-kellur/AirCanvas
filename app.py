@@ -1,10 +1,11 @@
 import json
-from flask import Flask, jsonify, render_template, Response, request, send_file, session, redirect, url_for, sessions
+from flask import Flask, jsonify, render_template, Response, request, send_file, session, redirect, url_for, session
 from camera import VideoCamera
 from pymongo import MongoClient
 import flask_mysqldb
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
-import base64
+from datetime import datetime, timedelta, timezone
+import threading
 import os
 
 app = Flask(__name__)
@@ -42,6 +43,15 @@ def load_user(user_id):
     user.id = user_id
     return user
 
+def update_activity():
+    if 'start_time' in session:
+        print("Current time:", datetime.now().strftime("%H:%M:%S"))
+        print("Session time:", session['start_time'])
+        current_time_obj = datetime.strptime(datetime.now().strftime("%H:%M:%S"), "%H:%M:%S")
+        start_time_obj = datetime.strptime(session['start_time'], "%H:%M:%S")
+        elapsed_time = current_time_obj - start_time_obj
+        return elapsed_time
+        
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -50,11 +60,16 @@ def login():
         cursor = mysql.connection.cursor()
         cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
         user = cursor.fetchone()
-        cursor.close()
+        print("user:", user)
         if user:
             user_obj = User()
             user_obj.id = username
             login_user(user_obj)
+            session['user_id'] = user[0]
+            session['start_time'] = datetime.now().strftime("%H:%M:%S")
+            print("type:", type(session['start_time']))
+            cursor.close()
+            
             return redirect('dashboard')
         else:
             return 'Invalid username or password'
@@ -95,14 +110,9 @@ def video_feed():
     
 @app.route('/drafted_video_feed')
 def drafted_video_feed():
-    bpoints = request.args.get('bpoints')
-    gpoints = request.args.get('gpoints')
-    rpoints = request.args.get('rpoints')
-    cpoints = request.args.get('cpoints')
-    ypoints = request.args.get('ypoints')
-
+    objectid = request.args.get('docid')
     # Create an instance of VideoCamera with points data
-    dcamera = VideoCamera(bpoints, gpoints, rpoints, cpoints, ypoints)
+    dcamera = VideoCamera(objectid)
     return Response(gen(dcamera),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -150,17 +160,26 @@ def export_sharing():
 def activity_feed():
     if gcamera is not None:
         gcamera.delete()
-    # Logic for displaying activity feed
-    return render_template('activity_feed.html')
+    elapsed_time_formatted = update_activity()
+    cursor = mysql.connection.cursor()
+    cursor.execute(f"SELECT activity FROM users WHERE id = {session['user_id']}")
+    dbTime = cursor.fetchone()
+    print("dbTime:", dbTime)
+    if dbTime[0]:
+        elapsed_time_formatted += dbTime[0]
+    return render_template('activity_feed.html', elapsed_time=elapsed_time_formatted)
 
 @app.route('/get_recent_drawings', methods=['GET'])
 def recent_drawing_list():
     if gcamera is not None:
         gcamera.delete()
-    data = list(collection.find({}, {'_id': 0}))
-    
+    print("dsefsdf")
+    user_data = list(collection.find({}))
+    print("afterfbcjsddc")
+    data = [{'id': str(doc['_id']), **doc} for doc in user_data]
     # Construct image URLs for each drawing item
     for item in data:
+        del item['_id']
         item['image_url'] = f'/image/{item["screenshot"]}'
     print("Actual data: ", data)
     context = {
@@ -170,17 +189,10 @@ def recent_drawing_list():
 
 @app.route('/drafted_page')
 def drafted_page():
-    bpoints = session.get('bpoints')
-    gpoints = session.get('gpoints')
-    rpoints = session.get('rpoints')
-    cpoints = session.get('cpoints')
-    ypoints = session.get('ypoints')
-
+    objectid = request.args.get('objectid')
     print("contents on click--------")
-    print(bpoints, "\n", gpoints, "\n", rpoints, "\n", cpoints, "\n", ypoints)
     # Process the points data as needed
-
-    return render_template('draft_page.html', bpoints=bpoints, gpoints=gpoints, rpoints=rpoints, cpoints=cpoints, ypoints=ypoints)
+    return render_template('draft_page.html', objectid=objectid)
 
 
 @app.route('/get_recent_recordings', methods=['GET'])
@@ -202,6 +214,17 @@ def recent_recording_list():
 @app.route('/logout')
 @login_required
 def logout():
+    if 'start_time' in session:
+        elapsed_time_formatted = update_activity()
+        cursor = mysql.connection.cursor()
+        cursor.execute(f"SELECT activity FROM users WHERE id = {session['user_id']}")
+        dbTime = cursor.fetchone()
+        if dbTime[0]:
+            elapsed_time_formatted += dbTime[0]
+        cursor.execute('UPDATE users SET activity = %s WHERE id = %s', (str(elapsed_time_formatted), session['user_id']))
+        mysql.connection.commit()
+        cursor.close()
+        session.pop('start_time')
     logout_user()
     return redirect(url_for('login'))
 

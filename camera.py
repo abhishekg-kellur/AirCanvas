@@ -1,3 +1,4 @@
+from bson import ObjectId
 import cv2
 import mediapipe as mp
 from collections import deque
@@ -12,22 +13,21 @@ colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255)]
 color_names = ["Blue", "Green", "Red", "Cyan", "Yellow"]
 
 class VideoCamera(object):
-    def __init__(self, bpoints=None, gpoints=None, rpoints=None, cpoints=None, ypoints=None):
+    def __init__(self, objectid=None):
         # Initialize variables for drawing
-        print("Points:", bpoints)
-        if bpoints or gpoints or rpoints or cpoints or ypoints:
-            bpoints_list = list(map(int, bpoints.split(','))) if bpoints else []
-            gpoints_list = list(map(int, gpoints.split(','))) if gpoints else []
-            rpoints_list = list(map(int, rpoints.split(','))) if rpoints else []
-            cpoints_list = list(map(int, cpoints.split(','))) if cpoints else []
-            ypoints_list = list(map(int, ypoints.split(','))) if ypoints else []
-            
+        print("ObjectId:", objectid)
+        if objectid:
+            client = MongoClient('mongodb://localhost:27017/')
+            db = client['AirCanvas']
+            collection = db['drawings']
+            user_data = list(collection.find({'_id': ObjectId(objectid)}, {'_id': 0}))
+            print("userdata:", user_data)
             # Create deques from the coordinate lists
-            self.bpoints = [deque(bpoints_list, maxlen=512)]
-            self.gpoints = [deque(gpoints_list, maxlen=512)]
-            self.rpoints = [deque(rpoints_list, maxlen=512)]
-            self.cpoints = [deque(cpoints_list, maxlen=512)]
-            self.ypoints = [deque(ypoints_list, maxlen=512)]
+            self.bpoints = [deque(user_data[0]['bpoints'], maxlen=512)]
+            self.gpoints = [deque(user_data[0]['gpoints'], maxlen=512)]
+            self.rpoints = [deque(user_data[0]['rpoints'], maxlen=512)]
+            self.cpoints = [deque(user_data[0]['cpoints'], maxlen=512)]
+            self.ypoints = [deque(user_data[0]['ypoints'], maxlen=512)]
             
             print("blue color coordinates:", self.bpoints)
             print("green color coordinates:", self.gpoints)
